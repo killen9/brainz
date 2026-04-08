@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사내 CRM - 인콜 고객사 관리</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 사이드바 -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <i class="fas fa-headset"></i>
+    <span>InCall CRM</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-page="dashboard">
+      <i class="fas fa-th-large"></i><span>대시보드</span>
+    </a>
+    <a href="#" class="nav-item" data-page="clients">
+      <i class="fas fa-building"></i><span>고객사 관리</span>
+    </a>
+    <a href="#" class="nav-item" data-page="history">
+      <i class="fas fa-history"></i><span>이력 관리</span>
+    </a>
+    <a href="#" class="nav-item" data-page="schedule">
+      <i class="fas fa-calendar-alt"></i><span>일정 관리</span>
+    </a>
+    <div class="nav-divider"></div>
+    <a href="#" class="nav-item" data-page="import">
+      <i class="fas fa-file-excel"></i><span>엑셀 Import</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <i class="fas fa-circle" style="color:#22c55e;font-size:8px"></i>
+    <span>서버 연결됨</span>
+  </div>
+</aside>
+
+<!-- 메인 콘텐츠 -->
+<main class="main-content">
+  <!-- 상단 헤더 -->
+  <header class="top-header">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div class="header-title" id="headerTitle">대시보드</div>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="headerActionBtn" onclick="showClientModal()">
+        <i class="fas fa-plus"></i> 고객사 등록
+      </button>
+    </div>
+  </header>
+
+  <!-- 페이지 컨테이너 -->
+  <div class="page-container">
+    <!-- 대시보드 -->
+    <div id="page-dashboard" class="page active">
+      <div class="dashboard-grid">
+        <!-- 통계 카드 -->
+        <div class="stats-row" id="statsRow"></div>
+
+        <!-- 진행중 고객사 -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-fire text-orange"></i> 진행중인 고객사</h3>
+            <span class="badge badge-warning" id="inProgressCount">0</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="inProgressTable">
+              <thead>
+                <tr>
+                  <th>고객사</th><th>문의 회사</th><th>상태</th>
+                  <th>담당자</th><th>최종 연락</th><th>이력</th><th>액션</th>
+                </tr>
+              </thead>
+              <tbody id="inProgressBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 향후 일정 -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-calendar-check text-blue"></i> 향후 30일 일정</h3>
+            <button class="btn btn-sm btn-outline" onclick="navigateTo('schedule')">전체 보기</button>
+          </div>
+          <div id="upcomingSchedules"></div>
+        </div>
+
+        <!-- 최근 이력 + 담당자 통계 -->
+        <div class="two-col-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-clock text-green"></i> 최근 이력</h3>
+            </div>
+            <div id="recentHistories"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-chart-pie text-purple"></i> 계약 상태 현황</h3>
+            </div>
+            <div id="statusChart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고객사 관리 -->
+    <div id="page-clients" class="page">
+      <div class="toolbar">
+        <div class="search-group">
+          <div class="search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="clientSearch" placeholder="회사명, 담당자, 연락처 검색..." class="search-input">
+          </div>
+          <select id="filterStatus" class="filter-select" onchange="loadClients()">
+            <option value="">전체 상태</option>
+            <option value="잠재">잠재</option>
+            <option value="상담중">상담중</option>
+            <option value="견적">견적</option>
+            <option value="계약완료">계약완료</option>
+            <option value="보류">보류</option>
+            <option value="종결">종결</option>
+          </select>
+          <select id="filterManager" class="filter-select" onchange="loadClients()">
+            <option value="">전체 담당자</option>
+          </select>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-success" onclick="showClientModal()">
+            <i class="fas fa-plus"></i> 신규 등록
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-outline dropdown-toggle" id="exportBtn">
+              <i class="fas fa-download"></i> 내보내기
+            </button>
+            <div class="dropdown-menu" id="exportMenu">
+              <a href="#" onclick="exportExcel(false)"><i class="fas fa-table"></i> 고객사 목록</a>
+              <a href="#" onclick="exportExcel(true)"><i class="fas fa-file-excel"></i> 고객사+이력 포함</a>
+              <a href="#" onclick="downloadTemplate()"><i class="fas fa-download"></i> 입력 양식 다운로드</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div id="clientTotal" class="text-muted"></div>
+          <div class="pagination-wrap" id="clientPagination"></div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="clientTable">
+            <thead>
+              <tr>
+                <th style="width:40px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                <th>최종 고객사</th>
+                <th>인콜 문의 회사</th>
+                <th>담당자</th>
+                <th>업종</th>
+                <th>계약 상태</th>
+                <th>유입 경로</th>
+                <th>회신 연락처</th>
+                <th>사내 담당</th>
+                <th>등록일</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="clientBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이력 관리 -->
+    <div id="page-history" class="page">
+      <div class="toolbar">
+        <div class="search-group">
+          <div class="search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="historySearch" placeholder="고객사, 제목, 내용 검색..." class="search-input" oninput="filterHistories()">
+          </div>
+        </div>
+        <button class="btn btn-success" onclick="showHistoryModal()">
+          <i class="fas fa-plus"></i> 이력 등록
+        </button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>고객사</th><th>유형</th><th>제목</th><th>내용</th>
+                <th>연락 담당자</th><th>결과</th><th>작성자</th><th>일시</th><th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 일정 관리 -->
+    <div id="page-schedule" class="page">
+      <div class="toolbar">
+        <div class="search-group">
+          <input type="date" id="schedFrom" class="filter-select" onchange="loadSchedules()">
+          <input type="date" id="schedTo" class="filter-select" onchange="loadSchedules()">
+          <select id="schedStatus" class="filter-select" onchange="loadSchedules()">
+            <option value="">전체 상태</option>
+            <option value="예정">예정</option>
+            <option value="완료">완료</option>
+            <option value="취소">취소</option>
+          </select>
+          <select id="schedManager" class="filter-select" onchange="loadSchedules()">
+            <option value="">전체 담당자</option>
+          </select>
+        </div>
+        <button class="btn btn-success" onclick="showScheduleModal()">
+          <i class="fas fa-plus"></i> 일정 등록
+        </button>
+      </div>
+
+      <!-- 캘린더 뷰 / 리스트 뷰 토글 -->
+      <div class="view-toggle">
+        <button class="btn btn-sm active" id="listViewBtn" onclick="toggleScheduleView('list')">
+          <i class="fas fa-list"></i> 목록
+        </button>
+        <button class="btn btn-sm" id="calViewBtn" onclick="toggleScheduleView('calendar')">
+          <i class="fas fa-calendar"></i> 캘린더
+        </button>
+      </div>
+
+      <div id="scheduleListView" class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>고객사</th><th>제목</th><th>유형</th>
+                <th>시작 일시</th><th>종료 일시</th>
+                <th>상태</th><th>담당자</th><th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="scheduleCalView" style="display:none">
+        <div class="card">
+          <div class="cal-header">
+            <button class="btn btn-sm btn-outline" onclick="changeMonth(-1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <h3 id="calTitle"></h3>
+            <button class="btn btn-sm btn-outline" onclick="changeMonth(1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="calendar" id="calendarGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 엑셀 Import -->
+    <div id="page-import" class="page">
+      <div class="import-container">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-file-upload text-blue"></i> 고객사 엑셀 일괄 등록</h3>
+          </div>
+          <div class="import-guide">
+            <div class="guide-step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <strong>양식 다운로드</strong>
+                <p>아래 버튼으로 입력 양식을 다운로드 받아주세요.</p>
+                <button class="btn btn-outline" onclick="downloadTemplate()">
+                  <i class="fas fa-download"></i> 입력 양식 다운로드
+                </button>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <strong>데이터 입력</strong>
+                <p>양식의 2행부터 고객사 정보를 입력합니다. <strong>인콜 문의 회사</strong>는 필수입니다.</p>
+                <div class="info-box">
+                  <p><strong>계약 상태 입력값:</strong> 잠재 / 상담중 / 견적 / 계약완료 / 보류 / 종결</p>
+                </div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <strong>파일 업로드</strong>
+                <p>작성한 파일을 아래에 업로드하면 자동으로 등록됩니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="upload-area" id="uploadArea"
+               ondrop="handleDrop(event)" ondragover="event.preventDefault()"
+               ondragenter="this.classList.add('drag-over')"
+               ondragleave="this.classList.remove('drag-over')">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>파일을 드래그하거나 클릭하여 업로드</p>
+            <span class="text-muted">.xlsx, .xls 파일 지원</span>
+            <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="previewImport(event)" hidden>
+            <button class="btn btn-outline" onclick="document.getElementById('excelFile').click()">
+              <i class="fas fa-folder-open"></i> 파일 선택
+            </button>
+          </div>
+
+          <div id="importPreview" style="display:none">
+            <div class="import-result" id="importResult"></div>
+            <button class="btn btn-primary" id="importConfirmBtn" onclick="confirmImport()">
+              <i class="fas fa-check"></i> 등록 확인
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- 고객사 등록/수정 모달 -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="clientModalTitle"><i class="fas fa-building"></i> 고객사 등록</h3>
+      <button class="modal-close" onclick="closeModal('clientModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="clientId">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>인콜 문의 회사 <span class="required">*</span></label>
+          <input type="text" id="fInquiryCompany" class="form-control" placeholder="문의 회사명">
+        </div>
+        <div class="form-group">
+          <label>최종 고객사</label>
+          <input type="text" id="fFinalClient" class="form-control" placeholder="납품 대상 고객사">
+        </div>
+        <div class="form-group">
+          <label>인콜 문의 담당자</label>
+          <input type="text" id="fInquiryContact" class="form-control" placeholder="홍길동 대리">
+        </div>
+        <div class="form-group">
+          <label>업종</label>
+          <input type="text" id="fIndustry" class="form-control" placeholder="IT/제조, 자동차, 화학 등">
+        </div>
+        <div class="form-group">
+          <label>계약 상태</label>
+          <select id="fContractStatus" class="form-control">
+            <option value="잠재">잠재</option>
+            <option value="상담중">상담중</option>
+            <option value="견적">견적</option>
+            <option value="계약완료">계약완료</option>
+            <option value="보류">보류</option>
+            <option value="종결">종결</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>유입 경로</label>
+          <select id="fInflowRoute" class="form-control">
+            <option value="">선택</option>
+            <option value="홈페이지">홈페이지</option>
+            <option value="지인소개">지인소개</option>
+            <option value="광고">광고</option>
+            <option value="전시회">전시회</option>
+            <option value="세미나">세미나</option>
+            <option value="콜드콜">콜드콜</option>
+            <option value="SNS">SNS</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>회신 연락처</label>
+          <input type="text" id="fCallbackPhone" class="form-control" placeholder="010-0000-0000">
+        </div>
+        <div class="form-group">
+          <label>회신 이메일</label>
+          <input type="email" id="fCallbackEmail" class="form-control" placeholder="example@company.com">
+        </div>
+        <div class="form-group">
+          <label>사내 담당자</label>
+          <input type="text" id="fManager" class="form-control" placeholder="담당 직원명">
+        </div>
+        <div class="form-group">
+          <label>계약 금액</label>
+          <input type="text" id="fContractAmount" class="form-control" placeholder="0000만원">
+        </div>
+        <div class="form-group">
+          <label>계약 기간</label>
+          <input type="text" id="fContractPeriod" class="form-control" placeholder="2024-12 또는 2024-01 ~ 2024-12">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>메모</label>
+        <textarea id="fMemo" class="form-control" rows="3" placeholder="추가 메모사항"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('clientModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveClient()">
+        <i class="fas fa-save"></i> 저장
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 고객사 상세 모달 -->
+<div class="modal-overlay" id="clientDetailModal">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <h3 id="detailModalTitle"><i class="fas fa-building"></i> 고객사 상세</h3>
+      <button class="modal-close" onclick="closeModal('clientDetailModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body detail-body">
+      <div class="detail-info" id="detailInfo"></div>
+      <div class="detail-tabs">
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchTab('history')">
+            <i class="fas fa-history"></i> 이력 (<span id="historyCount">0</span>)
+          </button>
+          <button class="tab-btn" onclick="switchTab('scheduleTab')">
+            <i class="fas fa-calendar"></i> 관련 일정
+          </button>
+        </div>
+        <div id="tab-history" class="tab-content active">
+          <div class="tab-toolbar">
+            <button class="btn btn-sm btn-success" onclick="showHistoryModal(currentDetailClientId)">
+              <i class="fas fa-plus"></i> 이력 추가
+            </button>
+          </div>
+          <div id="detailHistories"></div>
+        </div>
+        <div id="tab-scheduleTab" class="tab-content">
+          <div class="tab-toolbar">
+            <button class="btn btn-sm btn-success" onclick="showScheduleModal(currentDetailClientId)">
+              <i class="fas fa-plus"></i> 일정 추가
+            </button>
+          </div>
+          <div id="detailSchedules"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 이력 등록 모달 -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="historyModalTitle"><i class="fas fa-history"></i> 이력 등록</h3>
+      <button class="modal-close" onclick="closeModal('historyModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hId">
+      <input type="hidden" id="hClientId">
+      <div class="form-group">
+        <label>고객사 <span class="required">*</span></label>
+        <select id="hClientSelect" class="form-control"></select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>유형</label>
+          <select id="hType" class="form-control">
+            <option value="통화">통화</option>
+            <option value="이메일">이메일</option>
+            <option value="방문">방문</option>
+            <option value="미팅">미팅</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>연락 담당자</label>
+          <input type="text" id="hContact" class="form-control" placeholder="고객측 담당자">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>제목 <span class="required">*</span></label>
+        <input type="text" id="hTitle" class="form-control" placeholder="이력 제목">
+      </div>
+      <div class="form-group">
+        <label>내용</label>
+        <textarea id="hContent" class="form-control" rows="3" placeholder="상세 내용"></textarea>
+      </div>
+      <div class="form-group">
+        <label>결과</label>
+        <input type="text" id="hResult" class="form-control" placeholder="처리 결과 또는 다음 액션">
+      </div>
+      <div class="form-group">
+        <label>작성자</label>
+        <input type="text" id="hCreatedBy" class="form-control" placeholder="작성자 이름">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('historyModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveHistory()"><i class="fas fa-save"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 일정 등록 모달 -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="scheduleModalTitle"><i class="fas fa-calendar-plus"></i> 일정 등록</h3>
+      <button class="modal-close" onclick="closeModal('scheduleModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sId">
+      <div class="form-group">
+        <label>고객사</label>
+        <select id="sClientSelect" class="form-control">
+          <option value="">고객사 없음 (내부 일정)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>제목 <span class="required">*</span></label>
+        <input type="text" id="sTitle" class="form-control" placeholder="일정 제목">
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>유형</label>
+          <select id="sType" class="form-control">
+            <option value="미팅">미팅</option>
+            <option value="통화">통화</option>
+            <option value="방문">방문</option>
+            <option value="제안">제안</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>상태</label>
+          <select id="sStatus" class="form-control">
+            <option value="예정">예정</option>
+            <option value="완료">완료</option>
+            <option value="취소">취소</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>시작 일시 <span class="required">*</span></label>
+          <input type="datetime-local" id="sStartDt" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>종료 일시</label>
+          <input type="datetime-local" id="sEndDt" class="form-control">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>담당자</label>
+        <input type="text" id="sManager" class="form-control" placeholder="담당자 이름">
+      </div>
+      <div class="form-group">
+        <label>메모</label>
+        <textarea id="sDescription" class="form-control" rows="2" placeholder="일정 메모"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('scheduleModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveSchedule()"><i class="fas fa-save"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 알림 -->
+<div id="toast" class="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
